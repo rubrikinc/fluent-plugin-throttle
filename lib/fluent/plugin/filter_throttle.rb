@@ -10,7 +10,6 @@ module Fluent
     config_param :group_reset_rate_s, :integer, :default => nil
     config_param :warning_hz, :float, :default => 0.1
 
-    Bucket = Struct.new(:emitted, :last_reset)
     Group = Struct.new(
       :rate_count,
       :rate_last_reset,
