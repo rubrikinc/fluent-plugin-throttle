@@ -14,7 +14,7 @@ module Fluent
     Group = Struct.new(
       :rate_count,
       :rate_last_reset,
-      :rate,
+      :aprox_rate,
       :bucket_count,
       :bucket_last_reset,
       :last_warning)
@@ -66,7 +66,7 @@ module Fluent
       since_last_rate_reset = now - counter.rate_last_reset
       if since_last_rate_reset >= 1
         # compute and store rate/s at most every seconds.
-        counter.rate = (counter.rate_count / since_last_rate_reset).round()
+        counter.aprox_rate = (counter.rate_count / since_last_rate_reset).round()
         counter.rate_count = 0
         counter.rate_last_reset = now
       end
@@ -77,11 +77,11 @@ module Fluent
 
         if counter.bucket_count == -1 and @group_reset_rate_s != -1
           # wait until rate drops back down if needed.
-          if counter.rate < @group_reset_rate_s
+          if counter.aprox_rate < @group_reset_rate_s
             log_rate_back_down(now, group, counter)
           else
             since_last_warning = now - counter.last_warning
-            if since_last_warning > @warning_delay
+            if since_last_warning >= @warning_delay
               log_rate_limit_exceeded(now, group, counter)
               counter.last_warning = now
             end
@@ -122,11 +122,10 @@ module Fluent
     end
 
     def log_items(now, group, counter)
-      rate = counter.rate
-      if rate == 0
-        since_last_reset = now - counter.bucket_last_reset
-        rate = (counter.bucket_count / since_last_reset).round()
-      end
+      since_last_reset = now - counter.bucket_last_reset
+      rate = (counter.bucket_count / since_last_reset).round()
+      aprox_rate = counter.aprox_rate
+      rate = aprox_rate if aprox_rate > rate
 
       {'group_key': group,
        'rate_s': rate,
