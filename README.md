@@ -105,12 +105,13 @@ after a single breach of the limit until the next restart of fluentd.
 
 A value of `-1` disables the feature.
 
-#### group\_warning\_hz
+#### group\_warning\_delay\_s
 
-Default: `0.1` (10 seconds).
+Default: `10` (seconds).
 
 When a group reaches its limit and as long as it is not reset, a warning
-message with the current log rate for the group is logged at this frequency.
+message with the current log rate of the group is emitted repeatedly. This is
+the delay between every repetition.
 
 ## Copyright
 

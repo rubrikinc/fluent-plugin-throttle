@@ -8,7 +8,7 @@ module Fluent
     config_param :group_bucket_period_s, :integer, :default => 60
     config_param :group_bucket_limit, :integer, :default => 6000
     config_param :group_reset_rate_s, :integer, :default => nil
-    config_param :warning_hz, :float, :default => 0.1
+    config_param :group_warning_delay_s, :integer, :default => 10
 
     Group = Struct.new(
       :rate_count,
@@ -39,7 +39,8 @@ module Fluent
       raise "group_reset_rate_s must be <= group_bucket_limit / group_bucket_period_s" \
         unless @group_reset_rate_s <= @group_rate_limit
 
-      @warning_delay = (1.0 / @warning_hz)
+      raise "group_warning_delay_s must be >= 1" \
+        unless @group_warning_delay_s >= 1
     end
 
     def start
@@ -72,35 +73,34 @@ module Fluent
 
       if (now.to_i / @group_bucket_period_s) \
           > (counter.bucket_last_reset.to_i / @group_bucket_period_s)
-        # next time period reached, reset limit.
+        # next time period reached.
 
+        # wait until rate drops back down (if enabled).
         if counter.bucket_count == -1 and @group_reset_rate_s != -1
-          # wait until rate drops back down if needed.
           if counter.aprox_rate < @group_reset_rate_s
             log_rate_back_down(now, group, counter)
           else
-            since_last_warning = now - counter.last_warning
-            if since_last_warning >= @warning_delay
-              log_rate_limit_exceeded(now, group, counter)
-              counter.last_warning = now
-            end
+            log_rate_limit_exceeded(now, group, counter)
             return nil
           end
         end
 
+        # reset counter for the rest of time period.
         counter.bucket_count = 0
         counter.bucket_last_reset = now
-      end
-
-      if counter.bucket_count == -1
-        return nil
+      else
+        # if current time period credit is exhausted, drop the record.
+        if counter.bucket_count == -1
+          log_rate_limit_exceeded(now, group, counter)
+          return nil
+        end
       end
 
       counter.bucket_count += 1
 
+      # if we are out of credit, we drop logs for the rest of the time period.
       if counter.bucket_count > @group_bucket_limit
         log_rate_limit_exceeded(now, group, counter)
-        counter.last_warning = now
         counter.bucket_count = -1
         return nil
       end
@@ -113,7 +113,12 @@ module Fluent
     end
 
     def log_rate_limit_exceeded(now, group, counter)
-      $log.warn("rate exceeded", log_items(now, group, counter))
+      emit = counter.last_warning == nil ? true \
+        : (now - counter.last_warning) >= @group_warning_delay_s
+      if emit
+        $log.warn("rate exceeded", log_items(now, group, counter))
+        counter.last_warning = now
+      end
     end
 
     def log_rate_back_down(now, group, counter)
