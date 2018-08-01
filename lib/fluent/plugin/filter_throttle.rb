@@ -109,7 +109,7 @@ module Fluent::Plugin
     end
 
     def extract_group(record)
-      record.dig(*@group_key_path)
+      record.dig(*@group_key_path) || record.dig(*@group_key_path.map(&:to_sym))
     end
 
     def log_rate_limit_exceeded(now, group, counter)
