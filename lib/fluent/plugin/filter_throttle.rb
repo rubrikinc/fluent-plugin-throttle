@@ -1,6 +1,6 @@
-require 'fluent/filter'
+require 'fluent/plugin/filter'
 
-module Fluent
+module Fluent::Plugin
   class ThrottleFilter < Filter
     Fluent::Plugin.register_filter('throttle', self)
 
