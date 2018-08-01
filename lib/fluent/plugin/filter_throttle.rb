@@ -1,6 +1,6 @@
-require 'fluent/filter'
+require 'fluent/plugin/filter'
 
-module Fluent
+module Fluent::Plugin
   class ThrottleFilter < Filter
     Fluent::Plugin.register_filter('throttle', self)
 
@@ -109,20 +109,20 @@ module Fluent
     end
 
     def extract_group(record)
-      record.dig(*@group_key_path)
+      record.dig(*@group_key_path) || record.dig(*@group_key_path.map(&:to_sym))
     end
 
     def log_rate_limit_exceeded(now, group, counter)
       emit = counter.last_warning == nil ? true \
         : (now - counter.last_warning) >= @group_warning_delay_s
       if emit
-        $log.warn("rate exceeded", log_items(now, group, counter))
+        log.warn("rate exceeded", log_items(now, group, counter))
         counter.last_warning = now
       end
     end
 
     def log_rate_back_down(now, group, counter)
-      $log.info("rate back down", log_items(now, group, counter))
+      log.info("rate back down", log_items(now, group, counter))
     end
 
     def log_items(now, group, counter)
