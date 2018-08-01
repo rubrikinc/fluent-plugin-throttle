@@ -116,13 +116,13 @@ module Fluent::Plugin
       emit = counter.last_warning == nil ? true \
         : (now - counter.last_warning) >= @group_warning_delay_s
       if emit
-        $log.warn("rate exceeded", log_items(now, group, counter))
+        log.warn("rate exceeded", log_items(now, group, counter))
         counter.last_warning = now
       end
     end
 
     def log_rate_back_down(now, group, counter)
-      $log.info("rate back down", log_items(now, group, counter))
+      log.info("rate back down", log_items(now, group, counter))
     end
 
     def log_items(now, group, counter)
