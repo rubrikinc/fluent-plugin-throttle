@@ -21,6 +21,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "webmock", "~> 3.3"
   spec.add_development_dependency "test-unit", "~> 3.2"
   spec.add_development_dependency "appraisal", "~> 2.2"
+  spec.add_development_dependency "mocha"
+  spec.add_development_dependency "maxitest"
+  spec.add_development_dependency "single_cov"
 
   spec.add_runtime_dependency "fluentd", "~> 1.1"
 end
