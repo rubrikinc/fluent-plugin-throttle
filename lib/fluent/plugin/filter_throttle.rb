@@ -1,13 +1,35 @@
+# frozen_string_literal: true
 require 'fluent/plugin/filter'
 
 module Fluent::Plugin
   class ThrottleFilter < Filter
     Fluent::Plugin.register_filter('throttle', self)
 
+    desc "Used to group logs. Groups are rate limited independently"
     config_param :group_key, :string, :default => 'kubernetes.container_name'
+
+    desc <<~DESC
+      This is the period of of time over which group_bucket_limit applies
+    DESC
     config_param :group_bucket_period_s, :integer, :default => 60
+
+    desc <<~DESC
+      Maximum number logs allowed per groups over the period of
+      group_bucket_period_s
+    DESC
     config_param :group_bucket_limit, :integer, :default => 6000
+
+    desc <<~DESC
+      After a group has exceeded its bucket limit, logs are dropped until the
+      rate per second falls below or equal to group_reset_rate_s.
+    DESC
     config_param :group_reset_rate_s, :integer, :default => nil
+
+    desc <<~DESC
+      When a group reaches its limit and as long as it is not reset, a warning
+      message with the current log rate of the group is emitted repeatedly.
+      This is the delay between every repetition.
+    DESC
     config_param :group_warning_delay_s, :integer, :default => 10
 
     Group = Struct.new(
