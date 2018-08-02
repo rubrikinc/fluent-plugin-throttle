@@ -93,6 +93,30 @@ describe Fluent::Plugin::ThrottleFilter do
         120  # > group_reset_rate_s is okay now because haven't hit the limit
       ], messages_per_minute
     end
+
+
+    it 'does not throttle when in log only mode' do
+      driver = create_driver <<~CONF
+        group_bucket_period_s 2
+        group_bucket_limit 4
+        group_reset_rate_s 2
+        log_only true
+      CONF
+
+      records_expected = 0
+      driver.run(default_tag: "test") do
+        (0...10).each do |i|
+          Time.stubs(now: Time.at(i))
+          count = [1,8 - i].max
+          records_expected += count
+          driver.feed((0...count).map { |j| [event_time, msg: "test#{i}-#{j}"] }) # * count)
+        end
+      end
+
+      assert_equal records_expected, driver.filtered_records.size
+      assert driver.logs.any? { |log| log.include?('rate exceeded') }
+      assert driver.logs.any? { |log| log.include?('rate back down') }
+    end
   end
 
   describe 'logging' do

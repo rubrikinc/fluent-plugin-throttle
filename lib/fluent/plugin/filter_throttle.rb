@@ -32,6 +32,9 @@ module Fluent::Plugin
     DESC
     config_param :group_warning_delay_s, :integer, :default => 10
 
+    desc "Turn on to logging mode only and not drop any logs"
+    config_param :log_only, :bool, :default => false
+
     Group = Struct.new(
       :rate_count,
       :rate_last_reset,
@@ -68,21 +71,19 @@ module Fluent::Plugin
     def start
       super
 
-      @counters = Hash.new()
+      @counters = {}
     end
 
     def shutdown
-      $log.info("counters summary: #{@counters}")
+      log.debug("counters summary: #{@counters}")
       super
     end
 
     def filter(tag, time, record)
       now = Time.now
+      rate_limit_exceeded = @log_only ? record : nil
       group = extract_group(record)
-      counter = @counters.fetch(group, nil)
-      counter = @counters[group] = Group.new(
-        0, now, 0, 0, now, nil) if counter == nil
-
+      counter = (@counters[group] ||= Group.new(0, now, 0, 0, now, nil))
       counter.rate_count += 1
 
       since_last_rate_reset = now - counter.rate_last_reset
@@ -103,7 +104,7 @@ module Fluent::Plugin
             log_rate_back_down(now, group, counter)
           else
             log_rate_limit_exceeded(now, group, counter)
-            return nil
+            return rate_limit_exceeded
           end
         end
 
@@ -114,7 +115,7 @@ module Fluent::Plugin
         # if current time period credit is exhausted, drop the record.
         if counter.bucket_count == -1
           log_rate_limit_exceeded(now, group, counter)
-          return nil
+          return rate_limit_exceeded
         end
       end
 
@@ -124,7 +125,7 @@ module Fluent::Plugin
       if counter.bucket_count > @group_bucket_limit
         log_rate_limit_exceeded(now, group, counter)
         counter.bucket_count = -1
-        return nil
+        return rate_limit_exceeded
       end
 
       record
