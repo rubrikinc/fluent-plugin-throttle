@@ -108,6 +108,8 @@ module Fluent::Plugin
       record
     end
 
+    private
+
     def extract_group(record)
       record.dig(*@group_key_path) || record.dig(*@group_key_path.map(&:to_sym))
     end
