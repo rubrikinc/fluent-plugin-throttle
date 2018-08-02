@@ -127,7 +127,7 @@ module Fluent::Plugin
 
     def log_items(now, group, counter)
       since_last_reset = now - counter.bucket_last_reset
-      rate = (counter.bucket_count / since_last_reset).round()
+      rate = since_last_reset > 0 ? (counter.bucket_count / since_last_reset).round : Float::INFINITY
       aprox_rate = counter.aprox_rate
       rate = aprox_rate if aprox_rate > rate
 

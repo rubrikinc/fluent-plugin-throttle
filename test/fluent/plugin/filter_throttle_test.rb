@@ -11,8 +11,14 @@ describe Fluent::Plugin::ThrottleFilter do
     Fluent::Test.setup
   end
 
+  after do
+    if instance_variable_defined?(:@driver)
+      assert @driver.error_events.empty?, "Errors detected: " + @driver.error_events.map(&:inspect).join("\n")
+    end
+  end
+
   def create_driver(conf='')
-    Fluent::Test::Driver::Filter.new(Fluent::Plugin::ThrottleFilter).configure(conf)
+    @driver = Fluent::Test::Driver::Filter.new(Fluent::Plugin::ThrottleFilter).configure(conf)
   end
 
   describe '#configure' do
@@ -106,7 +112,7 @@ describe Fluent::Plugin::ThrottleFilter do
         end
       end
 
-      assert_equal 3, driver.logs.select { |log| log.include?('rate exceeded') }.size
+      assert_equal 4, driver.logs.select { |log| log.include?('rate exceeded') }.size
     end
 
     it 'logs when rate drops below group_reset_rate_s' do
