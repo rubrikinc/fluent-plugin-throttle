@@ -113,6 +113,14 @@ When a group reaches its limit and as long as it is not reset, a warning
 message with the current log rate of the group is emitted repeatedly. This is
 the delay between every repetition.
 
+#### log_only
+
+Default: `false`.
+
+When a group reaches its limit, only a warning message will be emitted and no
+logs will actually be dropped. This can be useful to fine-tune your group
+bucket limits before dropping any logs.
+
 ## Copyright
 
 Copyright © 2018 ([Rubrik Inc.](https://www.rubrik.com))
