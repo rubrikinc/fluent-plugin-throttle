@@ -4,7 +4,7 @@ module Fluent::Plugin
   class ThrottleFilter < Filter
     Fluent::Plugin.register_filter('throttle', self)
 
-    config_param :group_key, :string, :default => 'kubernetes.container_name'
+    config_param :group_key, :array, :default => ['kubernetes.container_name']
     config_param :group_bucket_period_s, :integer, :default => 60
     config_param :group_bucket_limit, :integer, :default => 6000
     config_param :group_reset_rate_s, :integer, :default => nil
@@ -21,7 +21,7 @@ module Fluent::Plugin
     def configure(conf)
       super
 
-      @group_key_path = group_key.split(".")
+      @group_key_paths = group_key.map { |key| key.split(".") }
 
       raise "group_bucket_period_s must be > 0" \
         unless @group_bucket_period_s > 0
@@ -109,7 +109,9 @@ module Fluent::Plugin
     end
 
     def extract_group(record)
-      record.dig(*@group_key_path) || record.dig(*@group_key_path.map(&:to_sym))
+      @group_key_paths.map do |key_path|
+        record.dig(*key_path) || record.dig(*key_path.map(&:to_sym))
+      end
     end
 
     def log_rate_limit_exceeded(now, group, counter)

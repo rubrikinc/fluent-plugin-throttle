@@ -38,7 +38,11 @@ the group key resolve to "random":
 {"level": "error", "msg": "plugin test", "kubernetes": { "container_name": "random" } }
 ```
 
-If the group cannot be resolved, am anonymous group is used.
+Multiple groups can be specified using the fluentd config array syntax, 
+e.g. `kubernetes.container_name,kubernetes.pod_name`, in which case each unique pair
+of key values are rate limited independently.
+
+If the group cannot be resolved, an anonymous (`nil`) group is used for rate limiting.
 
 #### group\_bucket\_period\_s
 
