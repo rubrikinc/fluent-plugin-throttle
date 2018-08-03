@@ -123,7 +123,7 @@ describe Fluent::Plugin::ThrottleFilter do
         group_bucket_period_s 2
         group_bucket_limit 4
         group_reset_rate_s 2
-        log_only true
+        group_drop_logs false
       CONF
 
       records_expected = 0

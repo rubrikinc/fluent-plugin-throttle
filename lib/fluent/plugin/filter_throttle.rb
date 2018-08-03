@@ -19,6 +19,9 @@ module Fluent::Plugin
     DESC
     config_param :group_bucket_limit, :integer, :default => 6000
 
+    desc "Whether to drop logs that exceed the bucket limit or not"
+    config_param :group_drop_logs, :bool, :default => true
+
     desc <<~DESC
       After a group has exceeded its bucket limit, logs are dropped until the
       rate per second falls below or equal to group_reset_rate_s.
@@ -31,9 +34,6 @@ module Fluent::Plugin
       This is the delay between every repetition.
     DESC
     config_param :group_warning_delay_s, :integer, :default => 10
-
-    desc "Turn on to logging mode only and not drop any logs"
-    config_param :log_only, :bool, :default => false
 
     Group = Struct.new(
       :rate_count,
@@ -81,7 +81,7 @@ module Fluent::Plugin
 
     def filter(tag, time, record)
       now = Time.now
-      rate_limit_exceeded = @log_only ? record : nil
+      rate_limit_exceeded = @group_drop_logs ? nil : record # return nil on rate_limit_exceeded to drop the record
       group = extract_group(record)
       counter = (@counters[group] ||= Group.new(0, now, 0, 0, now, nil))
       counter.rate_count += 1
