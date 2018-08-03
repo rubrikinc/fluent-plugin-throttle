@@ -55,6 +55,29 @@ describe Fluent::Plugin::ThrottleFilter do
       assert_equal(5, groups["b"].size)
     end
 
+    it 'allows composite group keys' do
+      driver = create_driver <<~CONF
+        group_key "group1,group2"
+        group_bucket_period_s 1
+        group_bucket_limit 5
+      CONF
+
+      driver.run(default_tag: "test") do
+        driver.feed([[event_time, {"msg": "test", "group1": "a", "group2": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "group1": "b", "group2": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "group1": "c"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "group2": "c"}]] * 10)
+      end
+
+      groups = driver.filtered_records.group_by { |r| r[:group1] }
+      groups.each { |k, g| groups[k] = g.group_by { |r| r[:group2] } }
+
+      assert_equal(5, groups["a"]["b"].size)
+      assert_equal(5, groups["b"]["b"].size)
+      assert_equal(5, groups["c"][nil].size)
+      assert_equal(5, groups[nil]["c"].size)
+    end
+
     it 'drops until rate drops below group_reset_rate_s' do
       driver = create_driver <<~CONF
         group_bucket_period_s 60
