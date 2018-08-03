@@ -11,8 +11,14 @@ describe Fluent::Plugin::ThrottleFilter do
     Fluent::Test.setup
   end
 
+  after do
+    if instance_variable_defined?(:@driver)
+      assert @driver.error_events.empty?, "Errors detected: " + @driver.error_events.map(&:inspect).join("\n")
+    end
+  end
+
   def create_driver(conf='')
-    Fluent::Test::Driver::Filter.new(Fluent::Plugin::ThrottleFilter).configure(conf)
+    @driver = Fluent::Test::Driver::Filter.new(Fluent::Plugin::ThrottleFilter).configure(conf)
   end
 
   describe '#configure' do
@@ -110,6 +116,30 @@ describe Fluent::Plugin::ThrottleFilter do
         120  # > group_reset_rate_s is okay now because haven't hit the limit
       ], messages_per_minute
     end
+
+
+    it 'does not throttle when in log only mode' do
+      driver = create_driver <<~CONF
+        group_bucket_period_s 2
+        group_bucket_limit 4
+        group_reset_rate_s 2
+        group_drop_logs false
+      CONF
+
+      records_expected = 0
+      driver.run(default_tag: "test") do
+        (0...10).each do |i|
+          Time.stubs(now: Time.at(i))
+          count = [1,8 - i].max
+          records_expected += count
+          driver.feed((0...count).map { |j| [event_time, msg: "test#{i}-#{j}"] }) # * count)
+        end
+      end
+
+      assert_equal records_expected, driver.filtered_records.size
+      assert driver.logs.any? { |log| log.include?('rate exceeded') }
+      assert driver.logs.any? { |log| log.include?('rate back down') }
+    end
   end
 
   describe 'logging' do
@@ -129,7 +159,7 @@ describe Fluent::Plugin::ThrottleFilter do
         end
       end
 
-      assert_equal 3, driver.logs.select { |log| log.include?('rate exceeded') }.size
+      assert_equal 4, driver.logs.select { |log| log.include?('rate exceeded') }.size
     end
 
     it 'logs when rate drops below group_reset_rate_s' do

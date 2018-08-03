@@ -73,6 +73,16 @@ logs per minute. However `60/60s` will readily emit 60 logs within the first
 second then nothing for the remaining 59 seconds. While the `1/1s` will only
 emit the first log of every second.
 
+#### group\_drop\_logs
+
+Default: `true`.
+
+When a group reaches its limit, logs will be dropped from further processing
+if this value is true (set by default). To prevent the logs from being dropped
+and only receive a warning message when rate limiting would have occurred, set
+this value for false. This can be useful to fine-tune your group bucket limits
+before dropping any logs.
+
 #### group\_reset\_rate\_s
 
 Default: `group_bucket_limit/group_bucket_period_s` (logs per `group_bucket_period_s`).
