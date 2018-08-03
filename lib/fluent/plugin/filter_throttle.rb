@@ -6,7 +6,7 @@ module Fluent::Plugin
     Fluent::Plugin.register_filter('throttle', self)
 
     desc "Used to group logs. Groups are rate limited independently"
-    config_param :group_key, :string, :default => 'kubernetes.container_name'
+    config_param :group_key, :array, :default => ['kubernetes.container_name']
 
     desc <<~DESC
       This is the period of of time over which group_bucket_limit applies
@@ -46,7 +46,7 @@ module Fluent::Plugin
     def configure(conf)
       super
 
-      @group_key_path = group_key.split(".")
+      @group_key_paths = group_key.map { |key| key.split(".") }
 
       raise "group_bucket_period_s must be > 0" \
         unless @group_bucket_period_s > 0
@@ -134,7 +134,9 @@ module Fluent::Plugin
     private
 
     def extract_group(record)
-      record.dig(*@group_key_path) || record.dig(*@group_key_path.map(&:to_sym))
+      @group_key_paths.map do |key_path|
+        record.dig(*key_path) || record.dig(*key_path.map(&:to_sym))
+      end
     end
 
     def log_rate_limit_exceeded(now, group, counter)
