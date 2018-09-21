@@ -1,5 +1,7 @@
 # fluent-plugin-throttle
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/rubrikinc/fluent-plugin-throttle/blob/master/LICENSE)
+
 A sentry pluging to throttle logs. Logs are grouped by a configurable key. When
 a group exceeds a configuration rate, logs are dropped for this group.
 
@@ -127,10 +129,10 @@ When a group reaches its limit and as long as it is not reset, a warning
 message with the current log rate of the group is emitted repeatedly. This is
 the delay between every repetition.
 
-## Copyright
-
-Copyright © 2018 ([Rubrik Inc.](https://www.rubrik.com))
-
 ## License
 
 Apache License, Version 2.0
+
+## Copyright
+
+Copyright © 2018 ([Rubrik Inc.](https://www.rubrik.com))
