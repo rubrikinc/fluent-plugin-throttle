@@ -158,11 +158,11 @@ describe Fluent::Plugin::ThrottleFilter do
         driver.feed([[event_time, {"msg": "test capital I", "level": "Info", "group": "b"}]] * 10)
         driver.feed([[event_time, {"msg": "test lower cased i", "level": "information", "group": "b"}]] * 10)
         driver.feed([[event_time, {"msg": "test capital I", "level": "Information", "group": "b"}]] * 10)
-        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "a"}]] * 10)
-        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "a"}]] * 20)
+        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "b"}]] * 20)
       end
 
-      assert_equal(60, driver.filtered_records.compact.length) # compact remove nils
+      assert_equal(70, driver.filtered_records.compact.length) # compact remove nils
     end
   end
 
