@@ -139,6 +139,30 @@ describe Fluent::Plugin::ThrottleFilter do
       assert_equal records_expected, driver.filtered_records.size
       assert driver.logs.any? { |log| log.include?('rate exceeded') }
       assert driver.logs.any? { |log| log.include?('rate back down') }
+      
+    end
+
+    it 'does not throttle when log includes the key to ignore' do
+      driver = create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 1
+        group_bucket_limit 15
+        <ignore>
+          key level
+          regex /^([Ii]nfo|[Ii]nformation|[Dd]ebug)$/
+        </ignore>
+      CONF
+
+      driver.run(default_tag: "test") do
+        driver.feed([[event_time, {"msg": "test lower cased i", "level": "info", "group": "a"}]] * 10)
+        driver.feed([[event_time, {"msg": "test capital I", "level": "Info", "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test lower cased i", "level": "information", "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test capital I", "level": "Information", "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "a"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "level": "error", "group": "b"}]] * 10)
+      end
+
+      assert_equal(60, driver.filtered_records.compact.length) # compact remove nils
     end
   end
 

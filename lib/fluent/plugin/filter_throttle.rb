@@ -34,6 +34,23 @@ module Fluent::Plugin
       This is the delay between every repetition.
     DESC
     config_param :group_warning_delay_s, :integer, :default => 10
+    
+    desc <<~DESC
+      Defines records which should be excluded from the throttling counters
+    DESC
+    config_section :ignore, param_name: :ignores, multi: true do
+      desc "The field name to which the regular expression is applied"
+      config_param :key, :string
+      desc "The regular expression"
+      config_param :regex do |value|
+        if value.start_with?("/") && value.end_with?("/")
+          Regexp.compile(value[1..-2])
+        else
+          Regexp.compile(value)
+        end
+      end
+    end
+
 
     Group = Struct.new(
       :rate_count,
@@ -80,6 +97,15 @@ module Fluent::Plugin
     end
 
     def filter(tag, time, record)
+      unless @ignores.empty?
+        @ignores.each { |ignore|
+          target_key = ignore.key
+          if record.include?(target_key.to_sym) && ignore.regex.match(record[target_key.to_sym])
+            return record
+          end
+        }
+      end
+      
       now = Time.now
       rate_limit_exceeded = @group_drop_logs ? nil : record # return nil on rate_limit_exceeded to drop the record
       group = extract_group(record)
