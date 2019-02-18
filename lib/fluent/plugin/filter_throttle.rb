@@ -100,8 +100,10 @@ module Fluent::Plugin
       unless @ignores.empty?
         @ignores.each { |ignore|
           target_key = ignore.key
-          if record.include?(target_key.to_sym) && ignore.regex.match(record[target_key.to_sym])
-            return record
+          if record.include?(target_key.to_sym) || record.include?(target_key)
+            if ignore.regex.match(record[target_key]) || ignore.regex.match(record[target_key.to_sym])
+              return record
+            end
           end
         }
       end
