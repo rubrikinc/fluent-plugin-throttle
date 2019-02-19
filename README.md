@@ -139,12 +139,18 @@ Example:
 
 ```
         <ignore>
-          key level
-          regex /^(info|debug)$/
+          key app.version
+          regex /^(2|3)$/
         </ignore>
 ```
 
-Will not take into throttling bucket calculations records that has level info or debug,
+A dot indicates a key within a sub-object. As an example, in the following log,
+the group key resolve to "2":
+```
+{"level": "error", "msg": "plugin test", "app": { "version": "2" } }
+```
+
+Will not take into throttling bucket calculations records that has version 2 or 3,
 They will just pass-through.
 
 ## License
