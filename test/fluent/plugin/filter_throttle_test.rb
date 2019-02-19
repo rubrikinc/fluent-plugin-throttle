@@ -164,6 +164,27 @@ describe Fluent::Plugin::ThrottleFilter do
 
       assert_equal(70, driver.filtered_records.compact.length) # compact remove nils
     end
+
+    it 'does not throttle when log includes the nested key to ignore' do
+      driver = create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 1
+        group_bucket_limit 15
+        <ignore>
+          key app.version
+          regex /^(2|3)$/
+        </ignore>
+      CONF
+
+      driver.run(default_tag: "test") do
+        driver.feed([[event_time, {"msg": "test lower cased i", "app": {"version": 2}, "group": "a"}]] * 10)
+        driver.feed([[event_time, {"msg": "test lower cased i", "app": {"version": 3}, "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test lower cased i", "app": {"version": 4}, "group": "a"}]] * 20)
+        driver.feed([[event_time, {"msg": "test lower cased i", "app": {"version": 5}, "group": "b"}]] * 20)
+      end
+
+      assert_equal(50, driver.filtered_records.compact.length) # compact remove nils
+    end
   end
 
   describe 'logging' do

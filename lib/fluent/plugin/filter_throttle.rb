@@ -102,7 +102,7 @@ module Fluent::Plugin
       unless @ignores.empty?
         @ignores.each { |ignore|
           keysValue = extract_value_from_key_path(ignore.key, record)
-          if keysValue != nil && ignore.regex.match(keysValue)
+          if keysValue != nil && ignore.regex.match(keysValue.to_s)
               return record
           end
         }
