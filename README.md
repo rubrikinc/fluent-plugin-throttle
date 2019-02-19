@@ -129,6 +129,30 @@ When a group reaches its limit and as long as it is not reset, a warning
 message with the current log rate of the group is emitted repeatedly. This is
 the delay between every repetition.
 
+#### ignore
+
+Default: `none`
+
+Define which records you want to ignore, you should specify key and regex to filter by.
+
+Example:
+
+```
+        <ignore>
+          key app.version
+          regex /^(2|3)$/
+        </ignore>
+```
+
+A dot indicates a key within a sub-object. As an example, in the following log,
+the group key resolve to "2":
+```
+{"level": "error", "msg": "plugin test", "app": { "version": "2" } }
+```
+
+Will not take into throttling bucket calculations records that has version 2 or 3,
+They will just pass-through.
+
 ## License
 
 Apache License, Version 2.0
