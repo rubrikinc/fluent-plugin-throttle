@@ -40,7 +40,9 @@ module Fluent::Plugin
     DESC
     config_section :ignore, param_name: :ignores, multi: true do
       desc "The field name to which the regular expression is applied"
-      config_param :key, :string
+      config_param :key do |value|
+        value.split(".")
+      end
       desc "The regular expression"
       config_param :regex do |value|
         if value.start_with?("/") && value.end_with?("/")
@@ -99,18 +101,16 @@ module Fluent::Plugin
     def filter(tag, time, record)
       unless @ignores.empty?
         @ignores.each { |ignore|
-          target_key = ignore.key
-          if record.include?(target_key.to_sym) || record.include?(target_key)
-            if ignore.regex.match(record[target_key]) || ignore.regex.match(record[target_key.to_sym])
+          keysValue = extract_value_from_key_path(ignore.key, record)
+          if keysValue != nil && ignore.regex.match(keysValue)
               return record
-            end
           end
         }
       end
       
       now = Time.now
       rate_limit_exceeded = @group_drop_logs ? nil : record # return nil on rate_limit_exceeded to drop the record
-      group = extract_group(record)
+      group = extract_value_from_key_paths(@group_key_paths, record)
       counter = (@counters[group] ||= Group.new(0, now, 0, 0, now, nil))
       counter.rate_count += 1
 
@@ -161,10 +161,14 @@ module Fluent::Plugin
 
     private
 
-    def extract_group(record)
-      @group_key_paths.map do |key_path|
-        record.dig(*key_path) || record.dig(*key_path.map(&:to_sym))
+    def extract_value_from_key_paths(paths, record)
+      paths.map do |key_path|
+        extract_value_from_key_path(key_path, record)
       end
+    end
+
+    def extract_value_from_key_path(path, record)
+      record.dig(*path) || record.dig(*path.map(&:to_sym))
     end
 
     def log_rate_limit_exceeded(now, group, counter)
