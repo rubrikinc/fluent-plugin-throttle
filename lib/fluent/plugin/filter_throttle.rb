@@ -51,6 +51,8 @@ module Fluent::Plugin
       raise "group_bucket_period_s must be > 0" \
         unless @group_bucket_period_s > 0
 
+      @group_gc_timeout_s = 2 * @group_bucket_period_s
+
       raise "group_bucket_limit must be > 0" \
         unless @group_bucket_limit > 0
 
@@ -83,15 +85,24 @@ module Fluent::Plugin
       now = Time.now
       rate_limit_exceeded = @group_drop_logs ? nil : record # return nil on rate_limit_exceeded to drop the record
       group = extract_group(record)
-      counter = (@counters[group] ||= Group.new(0, now, 0, 0, now, nil))
-      counter.rate_count += 1
+      
+      # Ruby hashes are ordered by insertion. 
+      # Deleting and inserting moves the item to the end of the hash (most recently used)
+      counter = @counters[group] = @counters.delete(group) || Group.new(0, now, 0, 0, now, nil)
 
+      counter.rate_count += 1
       since_last_rate_reset = now - counter.rate_last_reset
       if since_last_rate_reset >= 1
-        # compute and store rate/s at most every seconds.
+        # compute and store rate/s at most every second
         counter.aprox_rate = (counter.rate_count / since_last_rate_reset).round()
         counter.rate_count = 0
         counter.rate_last_reset = now
+      end
+
+      # try to evict the least recently used group
+      lru_group, lru_counter = @counters.first
+      if !lru_group.nil? && now - lru_counter.rate_last_reset > @group_gc_timeout_s
+        @counters.delete(lru_group)
       end
 
       if (now.to_i / @group_bucket_period_s) \
