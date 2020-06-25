@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/rubrikinc/fluent-plugin-throttle/blob/master/LICENSE)
 
-A sentry pluging to throttle logs. Logs are grouped by a configurable key. When
+A sentry plugin to throttle logs. Logs are grouped by a configurable key. When
 a group exceeds a configuration rate, logs are dropped for this group.
 
 ## Installation
