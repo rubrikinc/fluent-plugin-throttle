@@ -47,7 +47,7 @@ GEM
       byebug (~> 10.0)
       pry (~> 0.10)
     public_suffix (3.0.2)
-    rake (12.3.1)
+    rake (12.3.3)
     safe_yaml (1.0.4)
     serverengine (2.2.1)
       sigdump (~> 0.2.2)
