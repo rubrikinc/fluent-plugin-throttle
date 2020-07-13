@@ -129,6 +129,21 @@ When a group reaches its limit and as long as it is not reset, a warning
 message with the current log rate of the group is emitted repeatedly. This is
 the delay between every repetition.
 
+#### group\_override
+
+Allows overriding the defaults per group. To use this value, configure a JSON
+object with the group name value as the object name, and the above group_*
+parameters as entries. For example:
+```
+group_override {"group_bucket_1": {
+                  "group_bucket_period_s": 1,
+                  "group_bucket_limit": 7,
+                  "group_drop_logs": true
+                }}
+```
+This will configure an override for a group name of `group_bucket_1` with
+different throttling limits than others.  
+
 ## License
 
 Apache License, Version 2.0
