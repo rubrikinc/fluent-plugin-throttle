@@ -155,6 +155,22 @@ describe Fluent::Plugin::ThrottleFilter do
       ], messages_per_minute
     end
 
+    it 'removes lru groups after 2*period' do
+      driver = create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 2
+        group_bucket_limit 6
+        group_reset_rate_s 2
+      CONF
+
+      driver.run(default_tag: "test") do
+        Time.stubs(now: Time.at(1))
+        driver.feed([[event_time, {"msg": "test", "group": "a"}]] * 2)
+        Time.stubs(now: Time.at(10))
+        driver.feed([[event_time, {"msg": "test", "group": "b"}]] * 2)
+      end
+      #  TODO: Figure out how to assert the group was removed from the private variable
+    end
 
     it 'does not throttle when in log only mode' do
       driver = create_driver <<~CONF
