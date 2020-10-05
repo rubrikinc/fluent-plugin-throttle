@@ -61,6 +61,44 @@ describe Fluent::Plugin::ThrottleFilter do
       assert_equal(5, groups["b"].size)
     end
 
+    it 'rejects override configurations with invalid values' do
+      assert_raises { create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 1
+        group_bucket_limit 5
+        group_override {"group_bucket_1":{
+          "group_bucket_period_s": -1,
+          "group_bucket_limit": 7,
+          "group_drop_logs": true
+        }}
+      CONF
+      }
+    end
+
+    it 'throttles with different rates in override configs' do
+      driver = create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 1
+        group_bucket_limit 5
+        group_override {"group_bucket_1":{
+          "group_bucket_period_s": 1,
+          "group_bucket_limit": 7,
+          "group_drop_logs": true
+        }}
+      CONF
+
+      driver.run(default_tag: "test") do
+        driver.feed([[event_time, {"msg": "test", "group": "a"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "group": "b"}]] * 10)
+        driver.feed([[event_time, {"msg": "test", "group": "group_bucket_1"}]] * 10)
+      end
+
+      groups = driver.filtered_records.group_by { |r| r[:group] }
+      assert_equal(5, groups["a"].size)
+      assert_equal(5, groups["b"].size)
+      assert_equal(7, groups["group_bucket_1"].size)
+    end
+
     it 'allows composite group keys' do
       driver = create_driver <<~CONF
         group_key "group1,group2"
@@ -117,6 +155,22 @@ describe Fluent::Plugin::ThrottleFilter do
       ], messages_per_minute
     end
 
+    it 'removes lru groups after 2*period' do
+      driver = create_driver <<~CONF
+        group_key "group"
+        group_bucket_period_s 2
+        group_bucket_limit 6
+        group_reset_rate_s 2
+      CONF
+
+      driver.run(default_tag: "test") do
+        Time.stubs(now: Time.at(1))
+        driver.feed([[event_time, {"msg": "test", "group": "a"}]] * 2)
+        Time.stubs(now: Time.at(10))
+        driver.feed([[event_time, {"msg": "test", "group": "b"}]] * 2)
+      end
+      #  TODO: Figure out how to assert the group was removed from the private variable
+    end
 
     it 'does not throttle when in log only mode' do
       driver = create_driver <<~CONF
